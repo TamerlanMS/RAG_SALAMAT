@@ -96,16 +96,16 @@ async def ask_agent(
 #     return {"status_code": 201, "message": f"Total pharmacies: {pharmacies}"}
 
 
-# @router.post("/create_DB", tags=["database"])
-# async def create_tables() -> Dict[str, Any]:
-#     try:
-#         message = create_db()
-#     except Exception:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST, detail="Error creating tables"
-#         )
-#     else:
-#         return {"status_code": status.HTTP_200_OK, "transaction": f"{message}"}
+@router.post("/create_DB", tags=["database"])
+async def create_tables() -> Dict[str, Any]:
+    try:
+        message = create_db()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Error creating tables"
+        )
+    else:
+        return {"status_code": status.HTTP_200_OK, "transaction": f"{message}"}
 
 
 @router.post("/update_DB", tags=["database"])
