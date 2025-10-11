@@ -4,7 +4,7 @@ from typing import Annotated, Any, Dict, List, Optional
 import requests  # type: ignore
 from fastapi import Depends
 from pydantic import TypeAdapter
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import Session
 
 from src.common.Schemas.pharmacy_schemas import PharmacyProductSchema
@@ -34,23 +34,23 @@ def create_db() -> str:
         return "Database created successfully"
 
 
-def drop_db() -> str:
-    """
-    Удаляет все таблицы из базы данных.
-
-    :return: Сообщение о результате операции
-    """
-    try:
-        Base.metadata.drop_all(bind=engine)
-    except Exception as exp:
-        if "does not exist" in str(exp):
-            logger.info("Database does not exist")
-            return "Database does not exist"
-        else:
-            logger.error("Failed to drop database: %s", exp)
-            raise
-    else:
-        return "Database dropped successfully"
+# def drop_db() -> str:
+#     """
+#     Удаляет все таблицы из базы данных.
+#
+#     :return: Сообщение о результате операции
+#     """
+#     try:
+#         Base.metadata.drop_all(bind=engine)
+#     except Exception as exp:
+#         if "does not exist" in str(exp):
+#             logger.info("Database does not exist")
+#             return "Database does not exist"
+#         else:
+#             logger.error("Failed to drop database: %s", exp)
+#             raise
+#     else:
+#         return "Database dropped successfully"
 
 
 def __get_json_from_url(
@@ -119,6 +119,7 @@ def update_db(
     new_pharmacy_addresses = set()
     new_products = []
     new_pharmacies = []
+
     for item in pydantic_list_of_products:
         p_name = item.product.name
         ph_addr = item.pharmacy.address
@@ -142,32 +143,47 @@ def update_db(
     existing_products = {p.name: p.id for p in products}
     existing_pharmacies = {p.address: p.id for p in pharmacies}
 
-    # Bulk insert связей PharmacyProduct через scalars
-    pharmacy_products = db.scalars(select(PharmacyProduct)).all()
-    existing_links = set((pp.product_id, pp.pharmacy_id) for pp in pharmacy_products)
+    # Очищаем таблицу PharmacyProduct
+    db.execute(delete(PharmacyProduct))
+    db.commit()
+
+    # Формируем уникальные связи
+    seen_links = set()
     pharm_prod_prices = []
+
     for item in pydantic_list_of_products:
         try:
             price_product = int(item.price)
         except Exception as exp:
             logger.error("Price error: %s | Product: %s", exp, item)
             continue
-        product_id = existing_products[item.product.name]
-        pharmacy_id = existing_pharmacies[item.pharmacy.address]
-        if (product_id, pharmacy_id) not in existing_links:
-            pharm_prod_prices.append(
-                PharmacyProduct(
-                    product_id=product_id, pharmacy_id=pharmacy_id, price=price_product
-                )
+
+        p_name = item.product.name.strip()
+        ph_addr = item.pharmacy.address.strip()
+        product_id = existing_products.get(p_name)
+        pharmacy_id = existing_pharmacies.get(ph_addr)
+
+        if not product_id or not pharmacy_id:
+            continue
+
+        key = (product_id, pharmacy_id)
+        if key in seen_links:
+            continue  # Пропускаем дубликаты
+        seen_links.add(key)
+
+        pharm_prod_prices.append(
+            PharmacyProduct(
+                product_id=product_id, pharmacy_id=pharmacy_id, price=price_product
             )
-            existing_links.add((product_id, pharmacy_id))
-            counter += 1
+        )
+        counter += 1
     if pharm_prod_prices:
         db.bulk_save_objects(pharm_prod_prices)
     db.commit()
-    # Обновление vector store по понедельникам с 8-9 утра
+
+    # Обновление vector store по понедельникам с 4-5 утра
     now = datetime.now()
-    if now.weekday() == 0 and (8 <= now.hour <= 9):
+    if now.weekday() == 0 and (4 <= now.hour <= 5):
         logger.info("Starting to rebuild vector store")
         status_update = update_vector_store()
         logger.info("Vector store rebuilt status: %s", status_update)
