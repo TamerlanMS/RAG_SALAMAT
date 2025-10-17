@@ -7,6 +7,10 @@ from src.common.middlewares.middleware_register import register_middlewares
 app = FastAPI(
     title="FastAPI Test Salamat",
     version="0.1.0",
+    # remove OPENAPI docs
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 app.include_router(endpoints.router, prefix="/api/v1")
