@@ -44,6 +44,7 @@ async def ask_agent(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body"
         )
     except Exception as e:
+        logger.error("Unexpected error with request body - %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {e}",
@@ -53,11 +54,13 @@ async def ask_agent(
         answer = agent.invoke(inputs, config=config)
         ai_answer = answer["messages"][-1].content
     except AttributeError:
+        logger.warning("Unexpected response format from agent", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unexpected response format from agent",
         )
     except Exception as e:
+        logger.error("Unexpected error with answer from LLM - %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
