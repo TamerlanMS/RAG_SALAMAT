@@ -49,7 +49,7 @@ class LLMSettings(OpenAIModel):
         default="gpt-4o-mini", description="Название модели для чата"
     )
     temperature: float = Field(
-        default=0.01, ge=0.0, le=1.0, description="Креативность модели"
+        default=0.2, ge=0.0, le=1.0, description="Креативность модели"
     )
     max_tokens: Optional[int] = Field(
         default=5000, description="Максимальное число токенов в ответе"
