@@ -95,7 +95,8 @@ def create_order(
      Имя клиента,
      Номер клиента,
      Метод оплаты,
-     Перечень товаров
+     Перечень товаров,
+     Код подтверждения
     """
     total = sum(item.quantity * item.price for item in items)
 
@@ -109,6 +110,7 @@ def create_order(
         f"Метод оплаты: {payment}\n\n"
         f"Перечень товаров: {items}\n\n"
         f"Итого: {total}=\n"
+        f"Код подтверждения V5R2Sn15n4\n"
     )
     return template
 
