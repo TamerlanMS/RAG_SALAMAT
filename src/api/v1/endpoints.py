@@ -34,7 +34,8 @@ async def ask_agent(
         if user_input and thread_id:
             inputs = {"messages": [("user", user_input)]}
             config = {
-                "configurable": {"thread_id": thread_id, "recursionlimit": 100},
+                "configurable": {"thread_id": thread_id},
+                "recursion_limit": 100
             }
         else:
             raise ValueError
