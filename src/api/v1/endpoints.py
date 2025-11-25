@@ -9,9 +9,9 @@ from starlette.requests import Request
 
 from src.common.tools.ReAct_agent import agent
 from src.db.CRUD import (
-    # create_db,
+    create_db,
     # drop_db,
-    update_db,
+    update_db, update_pharmacy_phone_number,
     # update_vector_store,
 )
 from src.db.database import get_db
@@ -100,17 +100,17 @@ async def ask_agent(
 #     return {"status_code": 201, "message": f"Total pharmacies: {pharmacies}"}
 
 
-# @router.post("/create_DB", tags=["database"])
-# async def create_tables() -> Dict[str, Any]:
-#     try:
-#         message = create_db()
-#     except Exception:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST, detail="Error creating tables"
-#         )
-#     else:
-#         return {"status_code": status.HTTP_200_OK, "transaction": f"{message}"}
-#
+@router.post("/create_DB", tags=["database"])
+async def create_tables() -> Dict[str, Any]:
+    try:
+        message = create_db()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Error creating tables"
+        )
+    else:
+        return {"status_code": status.HTTP_200_OK, "transaction": f"{message}"}
+
 
 @router.post("/update_DB", tags=["database"])
 async def update_db_from_1c(
@@ -162,3 +162,33 @@ async def update_db_from_1c(
 # async def update_vector() -> Dict[str, str]:
 #     status_message = update_vector_store()
 #     return {"status message": status_message}
+
+@router.post("/update_pharmacy_phones_numbers", tags=["database"])
+async def update_pharmacy_phones_numbers(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> Dict[str, Any]:
+    """
+    Обновляет номера телефонов аптек по переданным данным.
+    Поддерживает JSON-тело в формате: {"адрес_аптеки": "телефон"}
+    """
+    try:
+        json_data = await request.json()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid JSON body: {e}"
+        )
+
+    success = update_pharmacy_phone_number(json_data)
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update pharmacy phone numbers"
+        )
+
+    return {
+        "status_code": status.HTTP_200_OK,
+        "message": "Pharmacy phone numbers updated successfully"
+    }

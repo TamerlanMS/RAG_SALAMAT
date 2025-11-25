@@ -1,10 +1,12 @@
+import json
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional, Union
 
 import requests  # type: ignore
 from fastapi import Depends
 from pydantic import TypeAdapter
 from sqlalchemy import select, delete
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from src.common.Schemas.pharmacy_schemas import PharmacyProductSchema
@@ -264,3 +266,76 @@ def update_vector_store() -> Any:
         )
         return status_message
     return "No products found"
+
+
+def get_pharmacy_phone_by_address(address: str) -> Any:
+    db = next(get_db())
+    try:
+        pharmacy_phone = db.scalar(select(Pharmacy).where(Pharmacy.address == address)).phone
+    except NoResultFound:
+        return None
+    finally:
+        db.close()
+    return pharmacy_phone
+
+
+def update_pharmacy_phone_number(pharmacy_data: Union[dict[str, str], str]) -> bool:
+    """
+    Функция обновляет телефонные номера аптек в базе данных.
+    Входящие данные могут быть:
+      - словарём: {pharmacy_address: phone_number}
+      - или JSON-строкой с таким же содержанием.
+
+    :param pharmacy_data: Словарь или JSON-строка в формате {"адрес": "телефон"}
+
+    :return bool: True, если обновление прошло успешно, иначе False
+    """
+    if not pharmacy_data:
+        return True  # Нечего обновлять
+
+    # Парсим JSON, если входной аргумент - строка
+    if isinstance(pharmacy_data, str):
+        try:
+            data = json.loads(pharmacy_data)
+        except json.JSONDecodeError as e:
+            logger.error("Некорректный JSON: %s", e)
+            return False
+    elif isinstance(pharmacy_data, dict):
+        data = pharmacy_data
+    else:
+        logger.error("Ожидался dict или str (JSON), получено: %s", type(pharmacy_data))
+        return False
+
+    # Проверяем, что все ключи и значения — строки
+    if not all(isinstance(k, str) and isinstance(v, str) for k, v in data.items()):
+        logger.error("Все ключи и значения в pharmacy_data должны быть строками")
+        return False
+
+    db = next(get_db())
+    try:
+        # 1-й запрос: Получаем аптеки по адресам из данных
+        addresses = list(data.keys())
+        pharmacies = db.scalars(select(Pharmacy).where(Pharmacy.address.in_(addresses))).all()
+
+        # Подготавливаем данные для массового обновления
+        update_data = []
+        for pharmacy in pharmacies:
+            new_phone = data.get(pharmacy.address)
+            if new_phone is not None:
+                update_data.append({
+                    "id": pharmacy.id,
+                    "phone": new_phone
+                })
+
+        # 2-й запрос: Массовое обновление
+        if update_data:
+            db.bulk_update_mappings(Pharmacy, update_data)
+        db.commit()
+
+        return True
+    except Exception as e:
+        db.rollback()
+        logger.error("Ошибка при обновлении телефонов аптек: %s", e)
+        return False
+    finally:
+        db.close()

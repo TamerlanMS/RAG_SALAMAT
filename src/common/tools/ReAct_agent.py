@@ -15,6 +15,7 @@ from src.db.CRUD import (
     get_all_pharmacies_by_product_name,
     get_product_price,
     get_products_by_name,
+    get_pharmacy_phone_by_address,
 )
 from src.settings.config import AGENT_PROMPT
 
@@ -90,7 +91,6 @@ def create_order(
     Создать заказ по шаблону.
     В аргументе должны быть данные о заказе:
      Адрес Аптеки,
-     Номер WhatsApp Аптеки,
      Адрес доставки,
      Имя клиента,
      Номер клиента,
@@ -103,7 +103,7 @@ def create_order(
     template = (
         f"Ваш Заказ: "
         f"Адрес Аптеки: {pharmacy_address}\n"
-        f"Номер WhatsApp Аптеки: {pharmacy_phone}\n"
+        f"Номер WhatsApp Аптеки: {get_pharmacy_phone_by_address(pharmacy_address)}\n"
         f"Адрес доставки: {pharmacy_address if total < 15000 else delivery_address}\n"
         f"Имя клиента: {client_name}\n"
         f"Номер клиента: {client_number}\n"
