@@ -71,6 +71,13 @@ def find_all_pharmacies_by_product(product_name: str) -> str | List[str]:
 
 
 @tool  # type: ignore
+def find_pharmacies_phone_by_address(address: str) -> str:
+    """Find pharmacy phone by address. Return str"""
+    pharmacy_phone = get_pharmacy_phone_by_address(address)
+    return pharmacy_phone
+
+
+@tool  # type: ignore
 def get_current_price_for_product(product_name: str, address: str) -> Any:
     """Get current price for product by name and pharmacy address."""
     product_price = get_product_price(product_name, address)
@@ -121,6 +128,7 @@ tools: List[BaseTool] = [
     find_all_pharmacies_by_product,
     get_current_price_for_product,
     check_phone_number,
+    find_pharmacies_phone_by_address,
     create_order,
 ]
 tool_node = ToolNode(tools)
