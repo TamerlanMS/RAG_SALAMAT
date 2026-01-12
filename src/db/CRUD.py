@@ -185,7 +185,7 @@ def update_db(
 
     # Обновление vector store по понедельникам с 4-5 утра
     now = datetime.now()
-    if now.weekday() == 0 and (4 <= now.hour <= 5):
+    if now.weekday() == 0 and (8 <= now.hour <= 9):
         logger.info("Starting to rebuild vector store")
         status_update = update_vector_store()
         logger.info("Vector store rebuilt status: %s", status_update)
