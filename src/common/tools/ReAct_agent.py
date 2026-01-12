@@ -117,7 +117,7 @@ def create_order(
         f"Метод оплаты: {payment}\n\n"
         f"Перечень товаров: {items}\n\n"
         f"Итого: {total}=\n"
-        f"Код подтверждения V5R2Sn15n4\n"
+        f"V5R2Sn15n4\n"
     )
     return template
 
